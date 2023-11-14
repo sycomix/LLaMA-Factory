@@ -175,10 +175,9 @@ def get_train_args(
     model_args.model_max_length = data_args.cutoff_len
 
     # Log on each process the small summary:
-    logger.info("Process rank: {}, device: {}, n_gpu: {}\n  distributed training: {}, compute dtype: {}".format(
-        training_args.local_rank, training_args.device, training_args.n_gpu,
-        bool(training_args.local_rank != -1), str(model_args.compute_dtype)
-    ))
+    logger.info(
+        f"Process rank: {training_args.local_rank}, device: {training_args.device}, n_gpu: {training_args.n_gpu}\n  distributed training: {training_args.local_rank != -1}, compute dtype: {str(model_args.compute_dtype)}"
+    )
     logger.info(f"Training/evaluation parameters {training_args}")
 
     # Set seed before initializing model.

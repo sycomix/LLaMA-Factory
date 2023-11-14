@@ -46,7 +46,7 @@ def run_dpo(
         ))
         ref_model_args = ModelArguments(**ref_model_args_dict)
         ref_model, _ = load_model_and_tokenizer(ref_model_args, finetuning_args, is_trainable=False, stage="sft")
-        logger.info("Created reference model from {}".format(finetuning_args.dpo_ref_model))
+        logger.info(f"Created reference model from {finetuning_args.dpo_ref_model}")
     elif training_args.do_train:
         if isinstance(model, PeftModel):
             ref_model = None

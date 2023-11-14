@@ -42,18 +42,19 @@ def gen_cmd(args: Dict[str, Any]) -> str:
     args.pop("disable_tqdm", None)
     args["plot_loss"] = args.get("do_train", None)
     cmd_lines = ["CUDA_VISIBLE_DEVICES=0 python src/train_bash.py "]
-    for k, v in args.items():
-        if v is not None and v != "":
-            cmd_lines.append("    --{} {} ".format(k, str(v)))
+    cmd_lines.extend(
+        f"    --{k} {str(v)} "
+        for k, v in args.items()
+        if v is not None and v != ""
+    )
     cmd_text = "\\\n".join(cmd_lines)
-    cmd_text = "```bash\n{}\n```".format(cmd_text)
-    return cmd_text
+    return f"```bash\n{cmd_text}\n```"
 
 
 def get_eval_results(path: os.PathLike) -> str:
     with open(path, "r", encoding="utf-8") as f:
         result = json.dumps(json.load(f), indent=4)
-    return "```json\n{}\n```\n".format(result)
+    return f"```json\n{result}\n```\n"
 
 
 def gen_plot(base_model: str, finetuning_type: str, output_dir: str) -> matplotlib.figure.Figure:
@@ -74,7 +75,7 @@ def gen_plot(base_model: str, finetuning_type: str, output_dir: str) -> matplotl
                 steps.append(log_info["current_steps"])
                 losses.append(log_info["loss"])
 
-    if len(losses) == 0:
+    if not losses:
         return None
 
     ax.plot(steps, losses, alpha=0.4, label="original")

@@ -86,7 +86,8 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         decoded_labels = self.tokenizer.batch_decode(labels, skip_special_tokens=True, clean_up_tokenization_spaces=True)
 
         with open(output_prediction_file, "w", encoding="utf-8") as writer:
-            res: List[str] = []
-            for pred, label in zip(decoded_preds, decoded_labels):
-                res.append(json.dumps({"label": label, "predict": pred}, ensure_ascii=False))
+            res: List[str] = [
+                json.dumps({"label": label, "predict": pred}, ensure_ascii=False)
+                for pred, label in zip(decoded_preds, decoded_labels)
+            ]
             writer.write("\n".join(res))

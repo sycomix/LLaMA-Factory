@@ -93,11 +93,8 @@ def load_model_and_tokenizer(
         for dtype_name, dtype in [("fp16", torch.float16), ("bf16", torch.bfloat16), ("fp32", torch.float32)]:
             setattr(config, dtype_name, getattr(config, "torch_dtype", None) == dtype)
 
-    # Set RoPE scaling
     if model_args.rope_scaling is not None:
-        if not hasattr(config, "rope_scaling"):
-            logger.warning("Current model does not support RoPE scaling.")
-        else:
+        if hasattr(config, "rope_scaling"):
             if is_trainable:
                 if model_args.rope_scaling == "dynamic":
                     logger.warning(
@@ -115,10 +112,12 @@ def load_model_and_tokenizer(
                 scaling_factor = 2.0
 
             setattr(config, "rope_scaling", {"type": model_args.rope_scaling, "factor": scaling_factor})
-            logger.info("Using {} scaling strategy and setting scaling factor to {}".format(
-                model_args.rope_scaling, scaling_factor
-            ))
+            logger.info(
+                f"Using {model_args.rope_scaling} scaling strategy and setting scaling factor to {scaling_factor}"
+            )
 
+        else:
+            logger.warning("Current model does not support RoPE scaling.")
     # Set FlashAttention-2
     if model_args.flash_attn:
         if getattr(config, "model_type", None) == "llama":
@@ -165,7 +164,7 @@ def load_model_and_tokenizer(
             )
 
         config_kwargs["device_map"] = {"": int(os.environ.get("LOCAL_RANK", "0"))} if is_trainable else "auto"
-        logger.info("Quantizing model to {} bit.".format(model_args.quantization_bit))
+        logger.info(f"Quantizing model to {model_args.quantization_bit} bit.")
 
     # Load and prepare pre-trained models (without valuehead).
     model = AutoModelForCausalLM.from_pretrained(
@@ -199,25 +198,25 @@ def load_model_and_tokenizer(
     model = model.train() if is_trainable else model.eval()
 
     # Prepare model with valuehead for RLHF
-    if stage == "rm" or stage == "ppo":
+    if stage in ["rm", "ppo"]:
         model: "AutoModelForCausalLMWithValueHead" = AutoModelForCausalLMWithValueHead.from_pretrained(model)
         reset_logging()
-        if stage == "rm" and model_args.checkpoint_dir is not None: # load valuehead weights to evaluate reward model
-            logger.warning("Only the last checkpoint containing valuehead will be loaded.")
-            if load_valuehead_params(model, model_args):
-                model.v_head.load_state_dict({
-                    "summary.weight": getattr(model, "reward_head_weight"),
-                    "summary.bias": getattr(model, "reward_head_bias")
-                })
+    if stage == "rm" and model_args.checkpoint_dir is not None: # load valuehead weights to evaluate reward model
+        logger.warning("Only the last checkpoint containing valuehead will be loaded.")
+        if load_valuehead_params(model, model_args):
+            model.v_head.load_state_dict({
+                "summary.weight": getattr(model, "reward_head_weight"),
+                "summary.bias": getattr(model, "reward_head_bias")
+            })
 
-        if stage == "ppo": # load reward model
-            logger.info("Load reward model from {}".format(model_args.reward_model))
-            if isinstance(model.pretrained_model, PeftModel):
-                model.pretrained_model.load_adapter(model_args.reward_model, "reward")
-            for name, param in model.named_parameters(): # https://github.com/huggingface/peft/issues/1090
-                if "default" in name:
-                    param.data = param.data.to(torch.float32) # trainable params should in fp32
-            assert load_valuehead_params(model, model_args), "Reward model is not correctly loaded."
+    if stage == "ppo": # load reward model
+        logger.info(f"Load reward model from {model_args.reward_model}")
+        if isinstance(model.pretrained_model, PeftModel):
+            model.pretrained_model.load_adapter(model_args.reward_model, "reward")
+        for name, param in model.named_parameters(): # https://github.com/huggingface/peft/issues/1090
+            if "default" in name:
+                param.data = param.data.to(torch.float32) # trainable params should in fp32
+        assert load_valuehead_params(model, model_args), "Reward model is not correctly loaded."
 
     # Prepare model for inference
     if not is_trainable:

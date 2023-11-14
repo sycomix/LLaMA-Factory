@@ -147,7 +147,7 @@ class DataArguments:
         self.dataset_list: List[DatasetAttr] = []
         for i, name in enumerate(dataset_names):
             if name not in dataset_info:
-                raise ValueError("Undefined dataset {} in dataset_info.json.".format(name))
+                raise ValueError(f"Undefined dataset {name} in dataset_info.json.")
 
             if "hf_hub_url" in dataset_info[name]:
                 dataset_attr = DatasetAttr("hf_hub", dataset_name=dataset_info[name]["hf_hub_url"])

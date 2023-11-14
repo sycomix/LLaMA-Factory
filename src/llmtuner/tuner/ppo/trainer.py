@@ -154,9 +154,12 @@ class CustomPPOTrainer(PPOTrainer, Trainer):
                 reward_meter.reset()
 
             if (step+1) % self.args.save_steps == 0: # save checkpoint
-                self.save_model(os.path.join(
-                    self.args.output_dir, "{}-{}".format(PREFIX_CHECKPOINT_DIR, self.state.global_step)
-                ))
+                self.save_model(
+                    os.path.join(
+                        self.args.output_dir,
+                        f"{PREFIX_CHECKPOINT_DIR}-{self.state.global_step}",
+                    )
+                )
                 self.save_callback.on_save(
                     self.args, self.state, self.control, model=self.accelerator.unwrap_model(self.model)
                 )

@@ -44,7 +44,7 @@ def save_model(
     )
 
     yield ALERTS["info_exporting"][lang]
-    export_model(args, max_shard_size="{}GB".format(max_shard_size))
+    export_model(args, max_shard_size=f"{max_shard_size}GB")
     yield ALERTS["info_exported"][lang]
 
 
