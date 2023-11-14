@@ -26,15 +26,15 @@ def find_all_linear_modules(
     if model.config.model_type == "chatglm":
         output_layer_names.append("output_layer")
 
-    module_names = set()
-    for name, module in model.named_modules():
-        if (
-            isinstance(module, linear_cls)
-            and not any([output_layer in name for output_layer in output_layer_names])
-        ):
-            module_names.add(name.split(".")[-1])
-
-    logger.info("Found linear modules: {}".format(",".join(module_names)))
+    module_names = {
+        name.split(".")[-1]
+        for name, module in model.named_modules()
+        if isinstance(module, linear_cls)
+        and all(
+            output_layer not in name for output_layer in output_layer_names
+        )
+    }
+    logger.info(f'Found linear modules: {",".join(module_names)}')
     return list(module_names)
 
 
